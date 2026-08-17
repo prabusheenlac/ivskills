@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>On Air — .NET & Frontend Voice Interview Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0D10;
+    --panel:#14171B;
+    --panel-raised:#1B1F24;
+    --line:#262B31;
+    --amber:#F5A623;
+    --amber-dim:#7A551A;
+    --teal:#3DDC97;
+    --red:#E5484D;
+    --text:#ECEDEE;
+    --text-muted:#8A9099;
+    --text-faint:#565C64;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .app{
+    display:grid;
+    grid-template-columns:340px 1fr;
+    min-height:100vh;
+  }
+  @media (max-width:860px){
+    .app{grid-template-columns:1fr;}
+  }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{
+    background:var(--panel);
+    border-right:1px solid var(--line);
+    padding:28px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand-dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--red);
+    box-shadow:0 0 0 3px rgba(229,72,77,0.15);
+  }
+  .brand-text{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--text);
+  }
+  .brand-sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    letter-spacing:0.04em;
+    margin-top:-14px;
+    margin-left:20px;
+  }
+
+  .search-wrap{position:relative;}
+  .search-wrap input{
+    width:100%;
+    background:var(--panel-raised);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:11px 14px 11px 34px;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:13.5px;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  .search-wrap input:focus{border-color:var(--amber);}
+  .search-wrap input::placeholder{color:var(--text-faint);}
+  .search-icon{
+    position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    color:var(--text-faint);font-size:13px;pointer-events:none;
+  }
+
+  .channel-label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-top:6px;
+  }
+
+  .skill-list{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    overflow-y:auto;
+    flex:1;
+  }
+  .skill-item{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:11px 12px;
+    border-radius:8px;
+    cursor:pointer;
+    border:1px solid transparent;
+    transition:background .12s ease, border-color .12s ease;
+  }
+  .skill-item:hover{background:var(--panel-raised);}
+  .skill-item.active{
+    background:rgba(245,166,35,0.08);
+    border-color:var(--amber-dim);
+  }
+  .skill-freq{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--text-faint);
+    width:40px;
+    flex-shrink:0;
+  }
+  .skill-item.active .skill-freq{color:var(--amber);}
+  .skill-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .skill-name{
+    font-size:13.5px;
+    font-weight:500;
+    color:var(--text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .skill-count{
+    font-size:11px;
+    color:var(--text-faint);
+  }
+  .no-results{
+    color:var(--text-faint);
+    font-size:12.5px;
+    padding:14px 4px;
+    font-style:italic;
+  }
+
+  /* ---------- Main ---------- */
+  .main{
+    padding:40px 48px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+  @media (max-width:600px){
+    .main{padding:24px 18px;}
+  }
+
+  .empty-state{
+    margin:auto;
+    text-align:center;
+    max-width:380px;
+  }
+  .empty-state .glyph{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:46px;
+    color:var(--text-faint);
+    margin-bottom:14px;
+  }
+  .empty-state h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:20px;
+    margin:0 0 8px;
+    color:var(--text);
+  }
+  .empty-state p{
+    color:var(--text-muted);
+    font-size:14px;
+    line-height:1.6;
+    margin:0;
+  }
+
+  .studio{
+    width:100%;
+    max-width:640px;
+    display:none;
+    flex-direction:column;
+    gap:22px;
+  }
+  .studio.visible{display:flex;}
+
+  .studio-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+  }
+  .studio-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:24px;
+    font-weight:700;
+    margin:0 0 4px;
+  }
+  .studio-sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    color:var(--text-faint);
+    letter-spacing:0.03em;
+  }
+  .on-air-badge{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:6px 12px;
+    border-radius:20px;
+    border:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    color:var(--text-faint);
+    flex-shrink:0;
+  }
+  .on-air-badge .lamp{
+    width:7px;height:7px;border-radius:50%;
+    background:var(--text-faint);
+  }
+  .on-air-badge.live{
+    border-color:rgba(229,72,77,0.4);
+    color:var(--red);
+  }
+  .on-air-badge.live .lamp{
+    background:var(--red);
+    box-shadow:0 0 8px rgba(229,72,77,0.8);
+  }
+
+  .progress-track{
+    height:3px;
+    background:var(--line);
+    border-radius:2px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--amber),var(--teal));
+    width:0%;
+    transition:width .3s ease;
+  }
+
+  .question-card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:30px 28px;
+    position:relative;
+  }
+  .q-index{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--amber);
+    letter-spacing:0.08em;
+    margin-bottom:10px;
+  }
+  .q-text{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:19px;
+    line-height:1.5;
+    font-weight:600;
+    color:var(--text);
+  }
+  .q-actions{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+  }
+
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    padding:9px 16px;
+    border-radius:8px;
+    border:1px solid var(--line);
+    background:var(--panel-raised);
+    color:var(--text);
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    transition:border-color .12s ease, transform .08s ease, background .12s ease;
+  }
+  .btn:hover{border-color:var(--text-faint);}
+  .btn:active{transform:scale(0.97);}
+  .btn:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn-primary{
+    background:var(--amber);
+    border-color:var(--amber);
+    color:#1A1300;
+  }
+  .btn-primary:hover{border-color:var(--amber);filter:brightness(1.06);}
+  .btn-ghost{background:transparent;}
+
+  /* Mic + waveform */
+  .mic-zone{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:16px;
+    padding:26px 20px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+  }
+  .mic-btn{
+    width:74px;height:74px;
+    border-radius:50%;
+    border:2px solid var(--line);
+    background:var(--panel-raised);
+    color:var(--text);
+    font-size:26px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:border-color .15s ease, background .15s ease, transform .1s ease;
+    flex-shrink:0;
+  }
+  .mic-btn:hover{border-color:var(--amber-dim);}
+  .mic-btn:active{transform:scale(0.96);}
+  .mic-btn.listening{
+    border-color:var(--red);
+    background:rgba(229,72,77,0.12);
+    animation:pulse-ring 1.5s ease-out infinite;
+  }
+  @keyframes pulse-ring{
+    0%{box-shadow:0 0 0 0 rgba(229,72,77,0.35);}
+    70%{box-shadow:0 0 0 16px rgba(229,72,77,0);}
+    100%{box-shadow:0 0 0 0 rgba(229,72,77,0);}
+  }
+  .mic-hint{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    letter-spacing:0.04em;
+    text-align:center;
+  }
+
+  .waveform{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    height:28px;
+  }
+  .waveform span{
+    display:block;
+    width:3px;
+    border-radius:2px;
+    background:var(--text-faint);
+    height:6px;
+    transition:height .1s ease, background .15s ease;
+  }
+  .waveform.active span{background:var(--teal);}
+
+  .transcript-box{
+    width:100%;
+    min-height:52px;
+    background:var(--panel-raised);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+    font-size:14px;
+    line-height:1.6;
+    color:var(--text);
+  }
+  .transcript-box.empty{
+    color:var(--text-faint);
+    font-style:italic;
+  }
+  .transcript-box textarea{
+    width:100%;
+    background:transparent;
+    border:none;
+    outline:none;
+    resize:vertical;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    line-height:1.6;
+    min-height:52px;
+  }
+
+  .support-warning{
+    font-size:12px;
+    color:var(--amber);
+    background:rgba(245,166,35,0.08);
+    border:1px solid var(--amber-dim);
+    border-radius:8px;
+    padding:10px 14px;
+    line-height:1.5;
+  }
+
+  .footer-actions{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+
+  /* ---------- Summary ---------- */
+  .summary{
+    display:none;
+    flex-direction:column;
+    gap:16px;
+    width:100%;
+    max-width:640px;
+  }
+  .summary.visible{display:flex;}
+  .summary-item{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px 22px;
+  }
+  .summary-q{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    color:var(--amber);
+    letter-spacing:0.08em;
+    margin-bottom:6px;
+  }
+  .summary-qtext{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:15.5px;
+    margin-bottom:10px;
+  }
+  .summary-atext{
+    font-size:13.5px;
+    color:var(--text-muted);
+    line-height:1.6;
+    border-left:2px solid var(--teal);
+    padding-left:12px;
+  }
+    .ffcolor {
+        font-size: 13.5px;
+        color:white;
+       
+    }
+  .summary-atext.blank{color:var(--text-faint);font-style:italic;border-color:var(--line);}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+        <div>
+            <div class="brand">
+                <span class="brand-dot"></span>
+                <span class="brand-text">Interview Skills</span><br /><br />
+            </div>
+
+            
+        </div>
+        <div class="ffcolor">
+            <a class="ffcolor" href="Skills2.html">Java/Oracle</a><br>
+            <a class="ffcolor" href="Skills3.html">SQL/Python</a><br>
+            <a class="ffcolor" href="donate.html">Donate</a><br>
+        </div>
+
+        <div class="search-wrap">
+            <span class="search-icon">⌕</span>
+            <input id="searchInput" type="text" placeholder="Search a skill…" autocomplete="off">
+        </div>
+
+        <div class="channel-label">Channels</div>
+        <div class="skill-list" id="skillList"></div>
+    </aside>
+
+  <main class="main">
+
+    <div class="empty-state" id="emptyState">
+      <div class="glyph">◎</div>
+      <h2>Tune in to a skill</h2>
+      <p>Search or pick a channel on the left. Each one queues up a set of questions — read aloud, answered by your voice.</p>
+    </div>
+
+    <div class="studio" id="studio">
+      <div class="studio-header">
+        <div>
+          <h1 class="studio-title" id="studioTitle">—</h1>
+          <div class="studio-sub" id="studioSub">—</div>
+        </div>
+        <div class="on-air-badge" id="onAirBadge"><span class="lamp"></span><span id="onAirLabel">STANDBY</span></div>
+      </div>
+
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+
+      <div class="question-card">
+        <div class="q-index" id="qIndex">QUESTION 1</div>
+        <div class="q-text" id="qText">—</div>
+        <div class="q-actions">
+          <button class="btn" id="repeatBtn">🔊 Repeat question</button>
+          <button class="btn btn-ghost" id="skipBtn">Skip →</button>
+        </div>
+      </div>
+
+      <div class="mic-zone">
+        <div class="waveform" id="waveform">
+          <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <button class="mic-btn" id="micBtn" title="Start answering">🎙</button>
+        <div class="mic-hint" id="micHint">Tap the mic and answer by your voice</div>
+        <div class="transcript-box empty" id="transcriptBox" data-empty-text="Your spoken answer will appear here…">Your spoken answer will appear here…</div>
+        <div id="supportWarning" class="support-warning" style="display:none;">
+          Voice recognition isn't available in this browser. Try Chrome or Edge on desktop — for now you can type your answer below instead.
+        </div>
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn btn-ghost" id="restartBtn">↺ Pick another skill</button>
+        <button class="btn btn-primary" id="nextBtn">Submit &amp; next →</button>
+      </div>
+    </div>
+
+    <div class="summary" id="summary">
+      <div class="studio-header">
+        <div>
+          <h1 class="studio-title" id="summaryTitle">Session wrap</h1>
+          <div class="studio-sub" id="summarySub">—</div>
+        </div>
+      </div>
+      <div id="summaryList"></div>
+      <div class="footer-actions">
+        <button class="btn btn-ghost" id="summaryRestartBtn">↺ Pick another skill</button>
+        <button class="btn btn-primary" id="summaryReplayBtn">↻ Retake this skill</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ---------------- Skill data ---------------- */
+const SKILLS = {
+  dotnet: {
+    name: ".NET",
+    freq: "01",
+    questions: [
+      "What's the difference between .NET Framework, .NET Core, and .NET 5+?",
+      "Can you explain the .NET garbage collector and how generations work?",
+      "What is the Common Language Runtime, and what role does it play?",
+      "How does dependency injection work in .NET, and why is it useful?",
+      "What's the difference between a class library, a NuGet package, and an assembly?",
+      "How would you handle configuration and secrets across different environments in .NET?"
+    ]
+  },
+  csharp: {
+    name: "C#",
+    freq: "02",
+    questions: [
+      "What's the difference between value types and reference types in C#?",
+      "Can you explain async and await, and what problem they solve?",
+      "What's the difference between an abstract class and an interface?",
+      "How do delegates, events, and Func/Action differ from each other?",
+      "What is LINQ, and can you walk through an example you've used?",
+      "How does exception handling with try/catch/finally work, and what are best practices?"
+    ]
+  },
+  webapi: {
+    name: "Web API",
+    freq: "03",
+    questions: [
+      "How would you design a RESTful Web API for a resource like orders or customers?",
+      "What's the difference between PUT, PATCH, and POST?",
+      "How do you handle authentication and authorization in an ASP.NET Web API?",
+      "What is middleware in ASP.NET Core, and how does the request pipeline work?",
+      "How would you version a Web API that's already in production?",
+      "How do you handle validation and consistent error responses across endpoints?"
+    ]
+  },
+  wpf: {
+    name: "WPF",
+    freq: "04",
+    questions: [
+      "Can you explain the MVVM pattern and why it's commonly used in WPF?",
+      "What is data binding in WPF, and how does INotifyPropertyChanged fit in?",
+      "What's the difference between a UserControl and a CustomControl?",
+      "How do dependency properties differ from regular .NET properties?",
+      "How would you handle navigation between views in a WPF application?",
+      "What tools or techniques would you use to debug a WPF binding that isn't updating?"
+    ]
+  },
+  angular: {
+    name: "Angular JS",
+    freq: "05",
+    questions: [
+      "What's the difference between components, directives, and services in Angular?",
+      "Can you explain how dependency injection works in Angular?",
+      "What's the difference between Observables and Promises, and when do you use each?",
+      "How does two-way data binding work in Angular?",
+      "What are Angular lifecycle hooks, and when would you use ngOnInit versus ngOnChanges?",
+      "How would you optimize the performance of a large Angular application?"
+    ]
+  },
+  reactjs: {
+    name: "React JS",
+    freq: "06",
+    questions: [
+      "What's the difference between state and props in React?",
+      "Can you explain how the virtual DOM works and why it helps performance?",
+      "What are React hooks, and how do useState and useEffect differ?",
+      "How would you manage global state in a large React application?",
+      "What's the difference between a controlled and an uncontrolled component?",
+      "How do you optimize re-renders in a React component tree?"
+    ]
+  }
+};
+
+/* ---------------- State ---------------- */
+let currentKey = null;
+let currentIndex = 0;
+let answers = [];
+let isListening = false;
+let finalTranscript = "";
+let recognition = null;
+let speechSupported = false;
+
+const synth = window.speechSynthesis;
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+/* ---------------- DOM refs ---------------- */
+const searchInput = document.getElementById('searchInput');
+const skillListEl = document.getElementById('skillList');
+const emptyState = document.getElementById('emptyState');
+const studio = document.getElementById('studio');
+const summary = document.getElementById('summary');
+
+const studioTitle = document.getElementById('studioTitle');
+const studioSub = document.getElementById('studioSub');
+const onAirBadge = document.getElementById('onAirBadge');
+const onAirLabel = document.getElementById('onAirLabel');
+const progressFill = document.getElementById('progressFill');
+const qIndex = document.getElementById('qIndex');
+const qText = document.getElementById('qText');
+const repeatBtn = document.getElementById('repeatBtn');
+const skipBtn = document.getElementById('skipBtn');
+const micBtn = document.getElementById('micBtn');
+const micHint = document.getElementById('micHint');
+const waveform = document.getElementById('waveform');
+const transcriptBox = document.getElementById('transcriptBox');
+const supportWarning = document.getElementById('supportWarning');
+const restartBtn = document.getElementById('restartBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+const summaryTitle = document.getElementById('summaryTitle');
+const summarySub = document.getElementById('summarySub');
+const summaryList = document.getElementById('summaryList');
+const summaryRestartBtn = document.getElementById('summaryRestartBtn');
+const summaryReplayBtn = document.getElementById('summaryReplayBtn');
+
+/* ---------------- Sidebar rendering ---------------- */
+function renderSkillList(filter=""){
+  const term = filter.trim().toLowerCase();
+  skillListEl.innerHTML = "";
+  const keys = Object.keys(SKILLS).filter(k => SKILLS[k].name.toLowerCase().includes(term));
+
+  if(keys.length === 0){
+    const div = document.createElement('div');
+    div.className = "no-results";
+    div.textContent = "No skills match that search.";
+    skillListEl.appendChild(div);
+    return;
+  }
+
+  keys.forEach(key => {
+    const skill = SKILLS[key];
+    const item = document.createElement('div');
+    item.className = "skill-item" + (key === currentKey ? " active" : "");
+    item.innerHTML = `
+      <span class="skill-freq">${skill.freq}</span>
+      <span class="skill-meta">
+        <span class="skill-name">${skill.name}</span>
+        <span class="skill-count">${skill.questions.length} questions</span>
+      </span>
+    `;
+    item.addEventListener('click', () => selectSkill(key));
+    skillListEl.appendChild(item);
+  });
+}
+
+searchInput.addEventListener('input', (e) => renderSkillList(e.target.value));
+
+/* ---------------- Selecting a skill ---------------- */
+function selectSkill(key){
+  stopListening();
+  synth.cancel();
+  currentKey = key;
+  currentIndex = 0;
+  answers = new Array(SKILLS[key].questions.length).fill("");
+
+  emptyState.style.display = "none";
+  summary.classList.remove('visible');
+  studio.classList.add('visible');
+
+  renderSkillList(searchInput.value);
+  loadQuestion();
+}
+
+function loadQuestion(){
+  const skill = SKILLS[currentKey];
+  const total = skill.questions.length;
+
+  studioTitle.textContent = skill.name;
+  studioSub.textContent = `CHANNEL ${skill.freq} · LIVE SESSION`;
+  qIndex.textContent = `QUESTION ${currentIndex + 1} OF ${total}`;
+  qText.textContent = skill.questions[currentIndex];
+  progressFill.style.width = `${(currentIndex / total) * 100}%`;
+
+  finalTranscript = answers[currentIndex] || "";
+  updateTranscriptDisplay();
+  setOnAir(false);
+
+  speakQuestion(skill.questions[currentIndex]);
+}
+
+/* ---------------- Text to speech ---------------- */
+function speakQuestion(text){
+  if(!('speechSynthesis' in window)) return;
+  synth.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.98;
+  utter.pitch = 1;
+  synth.speak(utter);
+}
+
+repeatBtn.addEventListener('click', () => {
+  speakQuestion(SKILLS[currentKey].questions[currentIndex]);
+});
+
+/* ---------------- Speech recognition ---------------- */
+if(SpeechRecognitionAPI){
+  speechSupported = true;
+  recognition = new SpeechRecognitionAPI();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
+
+  recognition.onresult = (event) => {
+    let interim = "";
+    for(let i = event.resultIndex; i < event.results.length; i++){
+      const transcriptPiece = event.results[i][0].transcript;
+      if(event.results[i].isFinal){
+        finalTranscript += (finalTranscript ? " " : "") + transcriptPiece.trim();
+      } else {
+        interim += transcriptPiece;
+      }
+    }
+    updateTranscriptDisplay(interim);
+  };
+
+  recognition.onend = () => {
+    if(isListening){
+      // auto-restart if it stopped unexpectedly while user is still "on air"
+      try{ recognition.start(); } catch(e){}
+    }
+  };
+
+  recognition.onerror = (e) => {
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      supportWarning.style.display = "block";
+      supportWarning.textContent = "Microphone access was blocked. Allow microphone permission in your browser to answer by voice.";
+      stopListening();
+    }
+  };
+} else {
+  supportWarning.style.display = "block";
+  showTypingFallback();
+}
+
+function showTypingFallback(){
+  transcriptBox.classList.remove('empty');
+  transcriptBox.innerHTML = "";
+  const ta = document.createElement('textarea');
+  ta.placeholder = "Type your answer here…";
+  ta.value = finalTranscript;
+  ta.addEventListener('input', () => {
+    finalTranscript = ta.value;
+    answers[currentIndex] = finalTranscript;
+  });
+  transcriptBox.appendChild(ta);
+  micBtn.disabled = true;
+  micHint.textContent = "Voice input unavailable — type your answer above";
+}
+
+function updateTranscriptDisplay(interim=""){
+  answers[currentIndex] = finalTranscript;
+  if(!speechSupported) return; // textarea handles its own display
+  const combined = [finalTranscript, interim].filter(Boolean).join(" ");
+  if(combined.trim() === ""){
+    transcriptBox.classList.add('empty');
+    transcriptBox.textContent = transcriptBox.dataset.emptyText;
+  } else {
+    transcriptBox.classList.remove('empty');
+    transcriptBox.textContent = combined;
+  }
+}
+
+function setOnAir(active){
+  isListening = active;
+  onAirBadge.classList.toggle('live', active);
+  onAirLabel.textContent = active ? "ON AIR" : "STANDBY";
+  micBtn.classList.toggle('listening', active);
+  micBtn.textContent = active ? "◼" : "🎙";
+  micBtn.title = active ? "Stop answering" : "Start answering";
+  waveform.classList.toggle('active', active);
+  micHint.textContent = active ? "Listening… tap again when you're done" : "Tap the mic and answer by your voice";
+  animateWaveform(active);
+}
+
+function startListening(){
+  if(!speechSupported || !recognition) return;
+  synth.cancel();
+  try{
+    recognition.start();
+    setOnAir(true);
+  }catch(e){
+    // already started
+  }
+}
+
+function stopListening(){
+  if(!speechSupported || !recognition) return;
+  isListening = false; // set before stop so onend doesn't auto-restart
+  try{ recognition.stop(); }catch(e){}
+  setOnAir(false);
+}
+
+micBtn.addEventListener('click', () => {
+  if(!speechSupported) return;
+  if(isListening){
+    stopListening();
+  } else {
+    startListening();
+  }
+});
+
+/* Waveform animation */
+let waveformTimer = null;
+function animateWaveform(active){
+  clearInterval(waveformTimer);
+  const bars = waveform.querySelectorAll('span');
+  if(!active){
+    bars.forEach(b => b.style.height = "6px");
+    return;
+  }
+  waveformTimer = setInterval(() => {
+    bars.forEach(b => {
+      const h = 6 + Math.random() * 22;
+      b.style.height = h + "px";
+    });
+  }, 140);
+}
+
+/* ---------------- Navigation ---------------- */
+function goToNext(){
+  stopListening();
+  synth.cancel();
+  const total = SKILLS[currentKey].questions.length;
+  if(currentIndex < total - 1){
+    currentIndex++;
+    loadQuestion();
+  } else {
+    progressFill.style.width = "100%";
+    showSummary();
+  }
+}
+
+nextBtn.addEventListener('click', goToNext);
+skipBtn.addEventListener('click', goToNext);
+
+restartBtn.addEventListener('click', backToChannels);
+summaryRestartBtn.addEventListener('click', backToChannels);
+
+function backToChannels(){
+  stopListening();
+  synth.cancel();
+  currentKey = null;
+  studio.classList.remove('visible');
+  summary.classList.remove('visible');
+  emptyState.style.display = "block";
+  renderSkillList(searchInput.value);
+}
+
+summaryReplayBtn.addEventListener('click', () => {
+  if(currentKey) selectSkill(currentKey);
+});
+
+/* ---------------- Summary ---------------- */
+function showSummary(){
+  const skill = SKILLS[currentKey];
+  studio.classList.remove('visible');
+  summary.classList.add('visible');
+
+  summaryTitle.textContent = `${skill.name} — session wrap`;
+  const answeredCount = answers.filter(a => a && a.trim() !== "").length;
+  summarySub.textContent = `${answeredCount} of ${skill.questions.length} questions answered`;
+
+  summaryList.innerHTML = "";
+  skill.questions.forEach((q, i) => {
+    const item = document.createElement('div');
+    item.className = "summary-item";
+    const a = answers[i] && answers[i].trim();
+    item.innerHTML = `
+      <div class="summary-q">QUESTION ${i + 1}</div>
+      <div class="summary-qtext">${q}</div>
+      <div class="summary-atext ${a ? "" : "blank"}">${a ? a : "No answer recorded"}</div>
+    `;
+    summaryList.appendChild(item);
+  });
+}
+
+/* ---------------- Init ---------------- */
+renderSkillList();
+</script>
+
+</body>
+</html>
